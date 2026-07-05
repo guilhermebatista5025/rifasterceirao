@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Terceirão - Sistema de Rifa Premium</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 6 CDN Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/rifas.css">
+    <link rel="stylesheet" href="styles/user.css">
+    <link rel="stylesheet" href="styles/admin.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- Banner de Alerta de Conexão -->
+    <div id="status-banner" class="banner-warning" style="display: none;">
+        <div class="banner-content">
+            <span><i class="fa-solid fa-triangle-exclamation"></i> O banco de dados Supabase não está configurado. Conecte-se para ativar as compras em tempo real.</span>
+            <button id="btn-configurar-banner" class="btn-alert">Configurar Conexão</button>
+        </div>
+    </div>
+
+    <!-- Barra de Navegação -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="logo-icon"><i class="fa-solid fa-dice"></i></span>
+                <span class="logo-text">Rifa<strong>Terceirão</strong></span>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item active" id="nav-rifas-tab"><a href="index.html">Rifas</a></li>
+                <li class="nav-item" id="nav-meus-numeros" style="display: none;"><a href="pages/user.html">Meus Números</a></li>
+                <li class="nav-item" id="nav-admin" style="display: none;"><a href="pages/admin.html">Painel Admin</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <div id="auth-status-container">
+                    <button id="btn-login-trigger" class="btn-primary">Entrar</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal com Abas -->
+    <div class="container">
+        
+        <!-- ================= ABA 1: RIFAS ================= -->
+        <section id="tab-rifas" class="tab-content active">
+            <!-- Painel de Indicadores -->
+            <div class="painel">
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-lock-open"></i></div>
+                    <div>
+                        <h2>Disponíveis</h2>
+                        <div class="valor" id="disponiveis">2000</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-percent"></i></div>
+                    <div>
+                        <h2>Percentual</h2>
+                        <div class="valor" id="percentual">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Busca & Filtros -->
+            <div class="busca-container">
+                <div class="busca">
+                    <input type="text" id="pesquisa" placeholder="Pesquisar por número ou nome do comprador...">
+                </div>
+                <div class="filtros-status" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn-filtro active" data-filtro="todos">Todos</button>
+                    <button class="btn-filtro" data-filtro="disponiveis">Disponíveis</button>
+                    <button class="btn-filtro" data-filtro="vendidos">Vendidos</button>
+                    <button id="btn-modo-selecao" class="btn-secondary" style="height: 42px; display: flex; align-items: center; gap: 6px; padding: 0 16px; font-weight: 600; cursor: pointer; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: white; color: var(--text-main); font-size: 14px; transition: var(--transition-fast);">
+                        <i class="fa-solid fa-list-check"></i> <span>Selecionar Vários</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid de Números -->
+            <div class="grid-wrapper">
+                <div class="grid" id="grid">
+                    <!-- Gerado dinamicamente -->
+                    <div class="loading-spinner-container" id="grid-loading">
+                        <div class="spinner"></div>
+                        <p>Carregando rifas do banco de dados...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ================= MODAL: DETALHES DE NÚMERO ================= -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tituloNumero">Número 0000</h2>
+                <button class="btn-close" onclick="fecharModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="alerta" id="alerta">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Este número já foi reservado
+                </div>
+                
+                <div id="info-proprietario" class="info-box" style="display: none;">
+                    <p><strong>Comprador:</strong> <span id="info-nome-proprietario">-</span></p>
+                    <p><strong>Reservado em:</strong> <span id="info-data-proprietario">-</span></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="nome">Nome do Comprador</label>
+                    <input type="text" id="nome" placeholder="Digite o nome completo">
+                </div>
+
+                <div class="form-group" id="grupo-pagamento" style="display: none;">
+                    <label for="tipo-pagamento">Forma de Pagamento</label>
+                    <select id="tipo-pagamento" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); font-size: 14px; background: white;">
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="pix">PIX</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="grupo-chave-pix" style="display: none; background: #f0fdf4; border: 1px dashed #bbf7d0; padding: 12px; border-radius: var(--radius-md); margin-top: 12px; margin-bottom: 12px;">
+                    <label style="color: #16a34a; font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">Chave PIX para Pagamento (Celular)</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="chave-pix-copiar" value="18817533793" readonly style="flex: 1; padding: 8px; font-size: 13px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: white; font-weight: 600;">
+                        <button type="button" id="btn-copiar-pix" class="btn-primary" style="padding: 8px 14px; font-size: 12px; height: auto; border-radius: var(--radius-sm); white-space: nowrap;">
+                            <i class="fa-solid fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="obs">Complemento / Observações</label>
+                    <textarea rows="3" id="obs" placeholder="Ex: Pago por PIX, contato, etc."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="salvar" class="btn-primary" style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                    <span class="spinner-btn" id="salvar-spinner" style="display: none; width: 18px; height: 18px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin-btn 0.6s linear infinite;"></span>
+                    <span id="salvar-texto">Reservar Número</span>
+                </button>
+                <button id="liberar" class="btn-danger" style="display: none;">Liberar Número</button>
+                <button id="cancelar" class="btn-secondary" onclick="fecharModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé Flutuante de Finalização de Seleção -->
+    <div id="footer-selecao-flutuante" class="footer-selecao-flutuante">
+        <div class="footer-content">
+            <span id="texto-numeros-selecionados">Nenhum número selecionado</span>
+            <button id="btn-finalizar-selecao" class="btn-primary" style="height: 44px; padding: 0 24px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; border-radius: var(--radius-md);">
+                <i class="fa-solid fa-check-double"></i> <span>Finalizar Reserva</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: CONFIGURAÇÃO DO SUPABASE ================= -->
+    <div class="modal" id="modal-config">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-gears"></i> Configuração do Banco de Dados</h2>
+                <button class="btn-close" id="btn-fechar-config">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Conecte o sistema ao seu projeto do <strong>Supabase</strong>. As chaves serão salvas localmente no seu navegador.</p>
+                
+                <div class="form-group">
+                    <label for="config-url">Supabase Project URL</label>
+                    <input type="text" id="config-url" placeholder="https://xxxxxx.supabase.co">
+                </div>
+                
+                <div class="form-group">
+                    <label for="config-key">Supabase API Key (Anon / Public)</label>
+                    <input type="password" id="config-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                </div>
+
+                <div class="ajuda-box">
+                    <h4><i class="fa-solid fa-lightbulb"></i> Como obter esses dados?</h4>
+                    <ol>
+                        <li>Acesse o painel do <a href="https://supabase.com" target="_blank">Supabase</a>.</li>
+                        <li>Vá em <strong>Project Settings</strong> > <strong>API</strong>.</li>
+                        <li>Copie a <strong>Project URL</strong> e a <strong>anon (public)</strong> key.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-salvar-config" class="btn-primary">Salvar Conexão</button>
+                <button id="btn-cancelar-config" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: AUTHENTICATION (LOGIN / REGISTRO) ================= -->
+    <div class="modal" id="modal-auth">
+        <div class="modal-content auth-modal-content">
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" id="tab-btn-login">Entrar</button>
+                <button class="auth-tab-btn" id="tab-btn-register">Registrar</button>
+                <button class="btn-close auth-close-btn" id="btn-fechar-auth">×</button>
+            </div>
+
+            <!-- Formulário de Login -->
+            <form id="form-login" class="auth-form active">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required placeholder="seuemail@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-senha">Senha</label>
+                    <input type="password" id="login-senha" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary btn-block">Acessar Conta</button>
+            </form>
+
+            <!-- Formulário de Registro -->
+            <form id="form-register" class="auth-form">
+                <div class="form-group">
+                    <label for="register-nome">Nome Completo</label>
+                    <input type="text" id="register-nome" required placeholder="Seu Nome">
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" required placeholder="seuemail@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label for="register-senha">Senha</label>
+                    <input type="password" id="register-senha" required minlength="6" placeholder="Mínimo 6 caracteres">
+                </div>
+
+                <button type="submit" class="btn-primary btn-block">Criar Conta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer>
+        <p>Sistema desenvolvido para gerenciamento de rifas do Terceirão. Apoiado por Supabase.</p>
+    </footer>
+
+    <script src="js/index-app.js"></script>
+    <script src="js/rifas.js"></script>
+</body>
+</html>

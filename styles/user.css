@@ -1,0 +1,24 @@
+/* =================================================================
+   USER DASHBOARD (MEUS NÚMEROS) SPECIFIC STYLES
+   ================================================================= */
+
+#tab-meus-numeros {
+    animation: fadeIn 0.3s ease;
+}
+
+#tabela-meus-numeros th {
+    background: #f8fafc;
+}
+
+#tabela-meus-numeros tbody tr:hover {
+    background: var(--color-primary-light);
+}
+
+#tabela-meus-numeros td span.badge-numero {
+    font-size: 13px;
+    padding: 6px 10px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}

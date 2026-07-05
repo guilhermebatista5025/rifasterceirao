@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Rifa Terceirão</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 6 Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="../styles/style.css">
+    <link rel="stylesheet" href="../styles/admin.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- Banner de Alerta de Conexão -->
+    <div id="status-banner" class="banner-warning" style="display: none;">
+        <div class="banner-content">
+            <span><i class="fa-solid fa-triangle-exclamation"></i> O banco de dados Supabase não está configurado. Conecte-se para ativar as compras em tempo real.</span>
+            <button id="btn-configurar-banner" class="btn-alert">Configurar Conexão</button>
+        </div>
+    </div>
+
+    <!-- Barra de Navegação -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="logo-icon"><i class="fa-solid fa-dice"></i></span>
+                <span class="logo-text">Rifa<strong>Terceirão</strong></span>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item" id="nav-rifas-tab"><a href="../index.html">Rifas</a></li>
+                <li class="nav-item" id="nav-meus-numeros" style="display: none;"><a href="user.html">Meus Números</a></li>
+                <li class="nav-item active" id="nav-admin" style="display: none;"><a href="admin.html">Painel Admin</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <div id="auth-status-container">
+                    <button id="btn-login-trigger" class="btn-primary">Entrar</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        
+        <section id="tab-admin" class="tab-content active">
+            <div class="section-header admin-header-flex">
+                <div>
+                    <h2><i class="fa-solid fa-user-shield"></i> Painel Administrativo</h2>
+                    <p>Gerencie todas as vendas, libere números e visualize a lista de usuários do sistema.</p>
+                </div>
+                <div class="admin-actions-bar">
+                    <button id="btn-lote-abrir" class="btn-primary btn-action-small"><i class="fa-solid fa-bolt"></i> Lançar em Lote</button>
+                    <button id="btn-exportar-csv" class="btn-secondary btn-action-small"><i class="fa-solid fa-file-csv"></i> Exportar CSV</button>
+                    <button id="btn-zerar-vendas" class="btn-danger btn-action-small"><i class="fa-solid fa-trash-can"></i> Zerar Rifa</button>
+                </div>
+            </div>
+
+            <!-- Painel de Indicadores Admin -->
+            <div class="painel admin-painel">
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-coins"></i></div>
+                    <div>
+                        <h2>Total Arrecadado</h2>
+                        <div class="valor" id="admin-arrecadado">R$ 0,00</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-ticket"></i></div>
+                    <div>
+                        <h2>Reservas Ativas</h2>
+                        <div class="valor" id="admin-vendidos">0 / 2000</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <div>
+                        <h2>Progresso Vendas</h2>
+                        <div class="valor" id="admin-percentual">0%</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-users"></i></div>
+                    <div>
+                        <h2>Contas de Usuários</h2>
+                        <div class="valor" id="admin-total-usuarios">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-grid">
+                <!-- Coluna Esquerda: Configuração e Controle de Vendas -->
+                <div>
+                    <!-- Configurar Total de Rifas -->
+                    <div class="card" style="margin-bottom: 24px;">
+                        <h3><i class="fa-solid fa-ticket"></i> Configurar Quantidade de Rifas</h3>
+                        <div style="margin-top: 30px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; width: 100%;">
+                            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                                <label for="admin-total-rifas-input" style="font-weight: 600; font-size: 13px; margin-bottom: 8px; display: block;">Quantidade Total de Rifas Disponíveis</label>
+                                <input type="number" id="admin-total-rifas-input" class="admin-input" placeholder="Ex: 2000" min="1">
+                            </div>
+                            <button id="btn-salvar-total-rifas" class="btn-primary" style="height: 44px; padding: 0 24px;">Salvar Limite</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Reservas -->
+                    <div class="card table-card admin-vendas-card" style="margin-bottom: 24px;">
+                        <h3><i class="fa-solid fa-cart-shopping"></i> Controle de Vendas Gerais</h3>
+
+                        <div class="table-responsive">
+                            <table class="data-table" id="tabela-admin-vendas">
+                                <thead>
+                                    <tr>
+                                        <th>Número</th>
+                                        <th>Comprador</th>
+                                        <th>Data</th>
+                                        <th>Observação</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-admin-vendas">
+                                    <tr>
+                                        <td colspan="5" class="empty-state">Nenhuma venda registrada no sistema.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Usuários (Administradores) -->
+                    <div class="card table-card admin-usuarios-card">
+                        <h3><i class="fa-solid fa-users"></i> Administradores do Sistema</h3>
+                        <div class="table-responsive">
+                            <table class="data-table" id="tabela-admin-usuarios">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>ID Usuário</th>
+                                        <th>Papel</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-admin-usuarios">
+                                    <tr>
+                                        <td colspan="4" class="empty-state">Nenhum administrador cadastrado.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lado Direito: Tabela de Usuários -->
+                <div>
+                    <!-- Adicionar Administrador -->
+                    <div class="card" style="margin-bottom: 24px;">
+                        <h3><i class="fa-solid fa-user-plus"></i> Adicionar Administrador</h3>
+                        <div style="margin-top: 30px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; width: 100%;">
+                            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                                <label for="admin-add-id" style="font-weight: 600; font-size: 13px; margin-bottom: 8px; display: block;">Usuário (Nome ou E-mail)</label>
+                                <input type="text" id="admin-add-id" class="admin-input" list="usuarios-sugeridos" placeholder="Digite o nome ou e-mail do usuário...">
+                                <datalist id="usuarios-sugeridos"></datalist>
+                            </div>
+                            <button id="btn-add-admin" class="btn-primary" style="height: 44px; padding: 0 24px; white-space: nowrap;">Promover a Administrador</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ================= MODAL: DETALHES DE NÚMERO ================= -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tituloNumero">Número 0000</h2>
+                <button class="btn-close" onclick="fecharModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="alerta" id="alerta">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Este número já foi reservado
+                </div>
+                
+                <div id="info-proprietario" class="info-box" style="display: none;">
+                    <p><strong>Comprador:</strong> <span id="info-nome-proprietario">-</span></p>
+                    <p><strong>Reservado em:</strong> <span id="info-data-proprietario">-</span></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="nome">Nome do Comprador</label>
+                    <input type="text" id="nome" placeholder="Digite o nome completo">
+                </div>
+                
+                <div class="form-group">
+                    <label for="obs">Complemento / Observações</label>
+                    <textarea rows="3" id="obs" placeholder="Ex: Pago por PIX, contato, etc."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="salvar" class="btn-primary">Reservar Número</button>
+                <button id="liberar" class="btn-danger" style="display: none;">Liberar Número</button>
+                <button id="cancelar" class="btn-secondary" onclick="fecharModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: CONFIGURAÇÃO DO SUPABASE ================= -->
+    <div class="modal" id="modal-config">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-gears"></i> Configuração do Banco de Dados</h2>
+                <button class="btn-close" id="btn-fechar-config">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Conecte o sistema ao seu projeto do <strong>Supabase</strong>. As chaves serão salvas localmente no seu navegador.</p>
+                
+                <div class="form-group">
+                    <label for="config-url">Supabase Project URL</label>
+                    <input type="text" id="config-url" placeholder="https://xxxxxx.supabase.co">
+                </div>
+                
+                <div class="form-group">
+                    <label for="config-key">Supabase API Key (Anon / Public)</label>
+                    <input type="password" id="config-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                </div>
+
+                <div class="ajuda-box">
+                    <h4><i class="fa-solid fa-lightbulb"></i> Como obter esses dados?</h4>
+                    <ol>
+                        <li>Acesse o painel do <a href="https://supabase.com" target="_blank">Supabase</a>.</li>
+                        <li>Vá em <strong>Project Settings</strong> > <strong>API</strong>.</li>
+                        <li>Copie a <strong>Project URL</strong> e a <strong>anon (public)</strong> key.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-salvar-config" class="btn-primary">Salvar Conexão</button>
+                <button id="btn-cancelar-config" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: LANÇAMENTO EM LOTE ================= -->
+    <div class="modal" id="modal-lote">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-bolt"></i> Lançamento em Lote</h2>
+                <button class="btn-close" id="btn-fechar-lote">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Reserve múltiplos números de uma só vez para um comprador.</p>
+                
+                <div class="form-group">
+                    <label for="lote-nome">Nome do Comprador</label>
+                    <input type="text" id="lote-nome" placeholder="Ex: Guilherme Batista">
+                </div>
+                <div class="form-group">
+                    <label for="lote-usuario">Associar à Conta (Opcional)</label>
+                    <select id="lote-usuario">
+                        <option value="">Sem conta (Convidado)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="lote-telefone">Telefone (Opcional)</label>
+                    <input type="text" id="lote-telefone" placeholder="Ex: (11) 99999-9999">
+                </div>
+                <div class="form-group">
+                    <label for="lote-turma">Turma (Opcional)</label>
+                    <input type="text" id="lote-turma" placeholder="Ex: 3º A">
+                </div>
+                <div class="form-group">
+                    <label for="lote-numeros">Números das Rifas (Ex: 23, 25, 27)</label>
+                    <input type="text" id="lote-numeros" placeholder="Ex: 23, 25, 27, 28">
+                </div>
+                <div class="form-group">
+                    <label for="lote-obs">Observações / Detalhes</label>
+                    <input type="text" id="lote-obs" placeholder="Ex: Pago por PIX, contato">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-lancar-lote" class="btn-primary">Confirmar Lançamento</button>
+                <button id="btn-cancelar-lote" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer>
+        <p>Sistema desenvolvido para gerenciamento de rifas do Terceirão. Apoiado por Supabase.</p>
+    </footer>
+
+    <!-- Scripts Modulares (Importados de fora da pasta) -->
+    <script src="../js/index-app.js"></script>
+    <script src="../js/rifas.js"></script>
+    <script src="../js/admin.js"></script>
+</body>
+</html>

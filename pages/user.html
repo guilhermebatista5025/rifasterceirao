@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Números - Rifa Terceirão</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 6 CDN Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="../styles/style.css">
+    <link rel="stylesheet" href="../styles/user.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- Banner de Alerta de Conexão -->
+    <div id="status-banner" class="banner-warning" style="display: none;">
+        <div class="banner-content">
+            <span><i class="fa-solid fa-triangle-exclamation"></i> O banco de dados Supabase não está configurado. Conecte-se para ativar as compras em tempo real.</span>
+            <button id="btn-configurar-banner" class="btn-alert">Configurar Conexão</button>
+        </div>
+    </div>
+
+    <!-- Barra de Navegação -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="logo-icon"><i class="fa-solid fa-dice"></i></span>
+                <span class="logo-text">Rifa<strong>Terceirão</strong></span>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item" id="nav-rifas-tab"><a href="../index.html">Rifas</a></li>
+                <li class="nav-item active" id="nav-meus-numeros" style="display: none;"><a href="user.html">Meus Números</a></li>
+                <li class="nav-item" id="nav-admin" style="display: none;"><a href="admin.html">Painel Admin</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <div id="auth-status-container">
+                    <button id="btn-login-trigger" class="btn-primary">Entrar</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        
+        <section id="tab-meus-numeros" class="tab-content active">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-ticket"></i> Meus Números Comprados</h2>
+                <p>Veja aqui as rifas que você adquiriu. O valor arrecadado ajuda a formatura do terceirão!</p>
+            </div>
+            
+            <div class="card table-card">
+                <div class="table-responsive">
+                    <table class="data-table" id="tabela-meus-numeros">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Data de Aquisição</th>
+                                <th>Observação</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-meus-numeros">
+                            <tr>
+                                <td colspan="4" class="empty-state">Você ainda não adquiriu nenhum número.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ================= MODAL: CONFIGURAÇÃO DO SUPABASE ================= -->
+    <div class="modal" id="modal-config">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-gears"></i> Configuração do Banco de Dados</h2>
+                <button class="btn-close" id="btn-fechar-config">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Conecte o sistema ao seu projeto do <strong>Supabase</strong>. As chaves serão salvas localmente no seu navegador.</p>
+                
+                <div class="form-group">
+                    <label for="config-url">Supabase Project URL</label>
+                    <input type="text" id="config-url" placeholder="https://xxxxxx.supabase.co">
+                </div>
+                
+                <div class="form-group">
+                    <label for="config-key">Supabase API Key (Anon / Public)</label>
+                    <input type="password" id="config-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                </div>
+
+                <div class="ajuda-box">
+                    <h4><i class="fa-solid fa-lightbulb"></i> Como obter esses dados?</h4>
+                    <ol>
+                        <li>Acesse o painel do <a href="https://supabase.com" target="_blank">Supabase</a>.</li>
+                        <li>Vá em <strong>Project Settings</strong> > <strong>API</strong>.</li>
+                        <li>Copie a <strong>Project URL</strong> e a <strong>anon (public)</strong> key.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-salvar-config" class="btn-primary">Salvar Conexão</button>
+                <button id="btn-cancelar-config" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer>
+        <p>Sistema desenvolvido para gerenciamento de rifas do Terceirão. Apoiado por Supabase.</p>
+    </footer>
+
+    <!-- Scripts Modulares (Importados de fora da pasta) -->
+    <script src="../js/index-app.js"></script>
+    <script src="../js/user.js"></script>
+</body>
+</html>
