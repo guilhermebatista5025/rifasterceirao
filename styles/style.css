@@ -755,11 +755,11 @@ footer {
    ================================================================= */
 .mobile-floating-menu {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: 16px;
+    right: 16px;
     z-index: 999;
     display: none; /* Oculto no desktop */
-    flex-direction: column;
+    flex-direction: column-reverse; /* Exibe os itens de menu acima do botão */
     align-items: flex-end;
     gap: 12px;
 }

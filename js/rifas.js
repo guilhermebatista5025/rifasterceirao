@@ -5,6 +5,54 @@
 let modoSelecaoAtivo = false;
 let numerosSelecionadosList = [];
 
+// Lista de promotores
+const VENDEDORES = [
+    { nome: "Guilherme", whatsapp: "5527998803770" },
+    { nome: "Estevão", whatsapp: "5527999829385" },
+    { nome: "Talyta", whatsapp: "5527998010374" },
+    { nome: "Giuliano", whatsapp: "5527997416562" }
+];
+
+function extrairTagsObservacao(obsText) {
+    if (!obsText) return { pagamento: "", vendedor: "", textoLimpo: "" };
+    
+    let pagamento = "";
+    let vendedor = "";
+    let textoLimpo = obsText;
+    
+    const pgmtoMatch = textoLimpo.match(/\[Pgmto:\s*([^\]]+)\]/i);
+    if (pgmtoMatch) {
+        pagamento = pgmtoMatch[1].toLowerCase().trim();
+        textoLimpo = textoLimpo.replace(pgmtoMatch[0], "");
+    }
+    
+    const vendMatch = textoLimpo.match(/\[Vendedor:\s*([^\]]+)\]/i);
+    if (vendMatch) {
+        vendedor = vendMatch[1].trim();
+        textoLimpo = textoLimpo.replace(vendMatch[0], "");
+    }
+    
+    // Remover tag [Lote] caso exista
+    textoLimpo = textoLimpo.replace(/\[Lote\]/gi, "");
+    
+    return {
+        pagamento: pagamento,
+        vendedor: vendedor,
+        textoLimpo: textoLimpo.trim()
+    };
+}
+
+function popularSelectVendedores(selectElement) {
+    if (!selectElement) return;
+    selectElement.innerHTML = '<option value="" disabled selected>Selecione um vendedor</option>';
+    VENDEDORES.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.nome;
+        opt.textContent = v.nome;
+        selectElement.appendChild(opt);
+    });
+}
+
 //=========================
 // RENDERIZAR GRID & CARREGAR DADOS
 //=========================
@@ -216,16 +264,30 @@ function abrirDetalhesNumero(numero) {
     btnSalvar.style.display = "inline-flex";
     btnLiberar.style.display = "none";
 
-    // Reset do campo de pagamento
+    // Reset do campo de pagamento e vendedor
     const gpPagamento = document.getElementById("grupo-pagamento");
     const gpChavePix = document.getElementById("grupo-chave-pix");
     const selectPagamento = document.getElementById("tipo-pagamento");
+    const gpVendedor = document.getElementById("grupo-vendedor");
+    const selectVendedor = document.getElementById("vendedor");
+
     if (gpPagamento) gpPagamento.style.display = "none";
     if (gpChavePix) gpChavePix.style.display = "none";
     if (selectPagamento) {
         selectPagamento.value = "dinheiro";
         selectPagamento.disabled = false;
     }
+    if (gpVendedor) gpVendedor.style.display = "none";
+    if (selectVendedor) {
+        selectVendedor.value = "";
+        selectVendedor.disabled = false;
+    }
+
+    // Atualizar resumo de totais no modal
+    const textQtdModal = document.getElementById("qtd-selecionada-modal");
+    const textValorModal = document.getElementById("valor-total-modal");
+    if (textQtdModal) textQtdModal.textContent = "1 número";
+    if (textValorModal) textValorModal.textContent = `R$ ${VALOR_NUMERO.toFixed(2).replace(".", ",")}`;
 
     if (!supabaseClient) {
         alertaNumero.style.display = "block";
@@ -247,19 +309,35 @@ function abrirDetalhesNumero(numero) {
             document.getElementById("info-data-proprietario").textContent = formatarData(registro.data_compra);
         }
 
+        const tags = extrairTagsObservacao(registro.observacao);
         campoNome.value = registro.nome;
-        campoObs.value = registro.observacao;
+        campoObs.value = tags.textoLimpo;
+
+        // Exibe os selects preenchidos para consulta/edição se tags estiverem presentes
+        if (gpPagamento && tags.pagamento) {
+            gpPagamento.style.display = "block";
+            selectPagamento.value = tags.pagamento;
+        }
+        if (gpVendedor && tags.vendedor) {
+            gpVendedor.style.display = "block";
+            popularSelectVendedores(selectVendedor);
+            selectVendedor.value = tags.vendedor;
+        }
 
         // Controle de Acesso
         if (userRole === "admin") {
             campoNome.disabled = false;
             campoObs.disabled = false;
+            if (selectPagamento) selectPagamento.disabled = false;
+            if (selectVendedor) selectVendedor.disabled = false;
             btnSalvar.textContent = "Atualizar Cadastro";
             btnSalvar.style.display = "inline-flex";
             btnLiberar.style.display = "inline-flex";
         } else if (currentUser && registro.user_id === currentUser.id) {
             campoNome.disabled = true;
             campoObs.disabled = false;
+            if (selectPagamento) selectPagamento.disabled = true;
+            if (selectVendedor) selectVendedor.disabled = true;
             btnSalvar.textContent = "Salvar Alterações";
             btnSalvar.style.display = "inline-flex";
             btnLiberar.style.display = "inline-flex";
@@ -267,6 +345,8 @@ function abrirDetalhesNumero(numero) {
         } else {
             campoNome.disabled = true;
             campoObs.disabled = true;
+            if (selectPagamento) selectPagamento.disabled = true;
+            if (selectVendedor) selectVendedor.disabled = true;
             btnSalvar.style.display = "none";
             btnLiberar.style.display = "none";
             alertaNumero.textContent = "⚠ ESTE NÚMERO JÁ FOI ADQUIRIDO POR OUTRO COMPRADOR";
@@ -288,8 +368,12 @@ function abrirDetalhesNumero(numero) {
                 campoNome.value = userDisplayName;
                 campoNome.disabled = true;
             }
-            // Mostrar escolha de pagamento para nova reserva
+            // Mostrar escolha de pagamento e vendedor para nova reserva
             if (gpPagamento) gpPagamento.style.display = "block";
+            if (gpVendedor) {
+                gpVendedor.style.display = "block";
+                popularSelectVendedores(selectVendedor);
+            }
         }
     }
 
@@ -309,13 +393,18 @@ function setSpinnerSalvar(ativo, texto = "Reservar Número") {
     if (btnSalvar) btnSalvar.disabled = ativo;
 }
 
-function abrirWhatsApp(nome, numero, obs, pagamento) {
+function abrirWhatsApp(nome, numero, obs, pagamento, vendedorNome) {
     const numFormatado = formatarNumero(numero);
     const pgmto = pagamento ? pagamento.toUpperCase() : "NÃO INFORMADO";
     const valorTotal = `R$ ${VALOR_NUMERO.toFixed(2).replace(".", ",")}`;
     const obsTexto = obs ? `\nObs: ${obs}` : "";
-    const msg = `Olá! Quero confirmar a minha reserva na Rifa Terceirão 🎟️\n\n*Nome:* ${nome}\n*Número:* ${numFormatado}\n*Pagamento:* ${pgmto}\n*Valor:* ${valorTotal}${obsTexto}`;
-    const url = `https://wa.me/5527998803770?text=${encodeURIComponent(msg)}`;
+    
+    // Encontra o contato do vendedor correto
+    const vendedorObj = VENDEDORES.find(v => v.nome === vendedorNome) || VENDEDORES[0];
+    const waNumber = vendedorObj.whatsapp;
+    
+    const msg = `Olá ${vendedorObj.nome}! Quero confirmar a minha reserva na Rifa Terceirão 🎟️\n\n*Nome:* ${nome}\n*Número:* ${numFormatado}\n*Pagamento:* ${pgmto}\n*Valor:* ${valorTotal}${obsTexto}\n\n👉 *Estou enviando o comprovante do PIX em anexo!* 📎`;
+    const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank");
 }
 
@@ -332,16 +421,26 @@ if (btnSalvar) {
 
         const selectPagamento = document.getElementById("tipo-pagamento");
         const formaPagamento = selectPagamento ? selectPagamento.value : "dinheiro";
+        const selectVendedor = document.getElementById("vendedor");
+        const nomeVendedor = selectVendedor ? selectVendedor.value : "";
         const registroExistente = rifasData[numeroSelecionado];
-
-        // Anexar forma de pagamento na observação para novos registros
-        if (!registroExistente && formaPagamento) {
-            const pgmtoTexto = `[Pgmto: ${formaPagamento.toUpperCase()}]`;
-            obs = obs ? `${pgmtoTexto} ${obs}` : pgmtoTexto;
-        }
 
         // 1) Iniciar spinner
         setSpinnerSalvar(true);
+
+        // Anexar forma de pagamento e vendedor na observação para novos registros ou atualização de admin
+        if (!registroExistente) {
+            if (!nomeVendedor) {
+                exibirNotificacao("Selecione com quem você comprou a rifa.", "warning");
+                setSpinnerSalvar(false);
+                return;
+            }
+            const tags = `[Pgmto: ${formaPagamento.toUpperCase()}] [Vendedor: ${nomeVendedor}]`;
+            obs = obs ? `${tags} ${obs}` : tags;
+        } else if (userRole === "admin") {
+            const tags = `[Pgmto: ${formaPagamento.toUpperCase()}] [Vendedor: ${nomeVendedor}]`;
+            obs = obs ? `${tags} ${obs}` : tags;
+        }
 
         try {
             if (registroExistente) {
@@ -367,7 +466,7 @@ if (btnSalvar) {
                 exibirNotificacao("Reserva realizada! Abrindo WhatsApp...", "success");
 
                 // 3) Após salvar, redirecionar para WhatsApp
-                setTimeout(() => abrirWhatsApp(nome, numeroSelecionado, campoObs.value.trim(), formaPagamento), 600);
+                setTimeout(() => abrirWhatsApp(nome, numeroSelecionado, campoObs.value.trim(), formaPagamento, nomeVendedor), 600);
             }
 
             fecharModal();
@@ -431,7 +530,18 @@ function atualizarFooterSelecao() {
     } else {
         footer.classList.add("show");
         const nums = numerosSelecionadosList.map(n => formatarNumero(n)).join(", ");
-        if (texto) texto.textContent = `${qtd} número${qtd > 1 ? "s" : ""} selecionado${qtd > 1 ? "s" : ""}: ${nums}`;
+        const total = qtd * VALOR_NUMERO;
+        const totalFormatado = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        if (texto) {
+            texto.innerHTML = `<span style="font-weight: 700; color: var(--text-main); font-size: 15px;">
+                ${qtd} número${qtd > 1 ? "s" : ""} selecionado${qtd > 1 ? "s" : ""} | Total: 
+                <strong style="color: var(--color-success);">${totalFormatado}</strong>
+            </span>
+            <br>
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: 400; display: block; margin-top: 2px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                Números: ${nums}
+            </span>`;
+        }
     }
 }
 
@@ -455,9 +565,66 @@ function limparModoSelecao() {
     }
 }
 
+// ─── Modal de Lote Helpers ──────────────────────────────────────────────────
+function abrirModalFinalizarLote() {
+    const modalLote = document.getElementById("modal-finalizar-lote");
+    if (!modalLote) return;
+
+    const textNumeros = document.getElementById("lote-numeros-lista");
+    const textQtd = document.getElementById("lote-qtd-total");
+    const textValor = document.getElementById("lote-valor-total");
+    const inputNome = document.getElementById("lote-nome");
+    const selectVendedor = document.getElementById("lote-vendedor");
+    const selectPagamento = document.getElementById("lote-tipo-pagamento");
+    const gpChavePix = document.getElementById("lote-grupo-chave-pix");
+    const inputObs = document.getElementById("lote-obs");
+
+    const qtd = numerosSelecionadosList.length;
+    const nums = numerosSelecionadosList.map(n => formatarNumero(n)).join(", ");
+    const total = qtd * VALOR_NUMERO;
+
+    if (textNumeros) textNumeros.textContent = nums;
+    if (textQtd) textQtd.textContent = qtd;
+    if (textValor) textValor.textContent = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    if (inputNome) {
+        inputNome.value = userDisplayName || (currentUser ? currentUser.email : "");
+        if (userRole !== "admin" && currentUser) {
+            inputNome.disabled = true;
+        } else {
+            inputNome.disabled = false;
+        }
+    }
+
+    if (inputObs) inputObs.value = "";
+    if (selectPagamento) {
+        selectPagamento.value = "dinheiro";
+    }
+    if (gpChavePix) gpChavePix.style.display = "none";
+
+    // Preenche vendedores
+    popularSelectVendedores(selectVendedor);
+
+    // Setup select change do PIX no modal de lote
+    if (selectPagamento && gpChavePix) {
+        selectPagamento.onchange = () => {
+            gpChavePix.style.display = selectPagamento.value === "pix" ? "block" : "none";
+        };
+    }
+
+    modalLote.style.display = "flex";
+}
+
+function fecharModalLote() {
+    const modalLote = document.getElementById("modal-finalizar-lote");
+    if (modalLote) modalLote.style.display = "none";
+}
+
+window.fecharModalLote = fecharModalLote;
+
 // Inicializar eventos DOM
 document.addEventListener("DOMContentLoaded", () => {
-    // ── PIX copy ──────────────────────────────────────────────────────────
+    // ── PIX copy modal individual ──────────────────────────────────────────
     const selectPagamento = document.getElementById("tipo-pagamento");
     const gpChavePix = document.getElementById("grupo-chave-pix");
     const btnCopiarPix = document.getElementById("btn-copiar-pix");
@@ -472,6 +639,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnCopiarPix && inputChavePix) {
         btnCopiarPix.onclick = () => {
             navigator.clipboard.writeText(inputChavePix.value)
+                .then(() => exibirNotificacao("Chave PIX copiada com sucesso!", "success"))
+                .catch(err => exibirNotificacao("Erro ao copiar chave: " + err, "error"));
+        };
+    }
+
+    // ── PIX copy modal de lote ──────────────────────────────────────────────
+    const btnCopiarPixLote = document.getElementById("lote-btn-copiar-pix");
+    const inputChavePixLote = document.getElementById("lote-chave-pix-copiar");
+
+    if (btnCopiarPixLote && inputChavePixLote) {
+        btnCopiarPixLote.onclick = () => {
+            navigator.clipboard.writeText(inputChavePixLote.value)
                 .then(() => exibirNotificacao("Chave PIX copiada com sucesso!", "success"))
                 .catch(err => exibirNotificacao("Erro ao copiar chave: " + err, "error"));
         };
@@ -494,10 +673,10 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // ── Botão Finalizar Reserva em lote → Salva no banco + WhatsApp ──────
+    // ── Botão Finalizar Reserva em lote → Abre modal de finalização de lote ─
     const btnFinalizar = document.getElementById("btn-finalizar-selecao");
     if (btnFinalizar) {
-        btnFinalizar.onclick = async () => {
+        btnFinalizar.onclick = () => {
             if (numerosSelecionadosList.length === 0) return;
             if (!supabaseClient) {
                 exibirNotificacao("Banco de dados não conectado.", "error");
@@ -508,51 +687,93 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // Spinner no botão Finalizar
-            const spanFinalizar = btnFinalizar.querySelector("span");
-            btnFinalizar.disabled = true;
-            if (spanFinalizar) spanFinalizar.textContent = "Salvando...";
+            abrirModalFinalizarLote();
+        };
+    }
 
-            const nome = userDisplayName || currentUser.email;
-            const qtd = numerosSelecionadosList.length;
-            const valorTotal = (qtd * VALOR_NUMERO).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    // ── Botão Confirmar Reserva do modal de lote ────────────────────────────
+    const btnLoteSalvar = document.getElementById("lote-salvar");
+    if (btnLoteSalvar) {
+        btnLoteSalvar.onclick = async () => {
+            const inputNome = document.getElementById("lote-nome");
+            const selectVendedor = document.getElementById("lote-vendedor");
+            const selectPagamento = document.getElementById("lote-tipo-pagamento");
+            const inputObs = document.getElementById("lote-obs");
+
+            const nome = inputNome ? inputNome.value.trim() : "";
+            const vendedorNome = selectVendedor ? selectVendedor.value : "";
+            const formaPagamento = selectPagamento ? selectPagamento.value : "dinheiro";
+            const obsAdicional = inputObs ? inputObs.value.trim() : "";
+
+            if (!nome) {
+                exibirNotificacao("Preencha o nome do comprador.", "warning");
+                return;
+            }
+            if (!vendedorNome) {
+                exibirNotificacao("Selecione com quem você comprou os números.", "warning");
+                return;
+            }
+
+            // Inicia spinner no botão de lote
+            const spinner = document.getElementById("lote-salvar-spinner");
+            const textoEl = document.getElementById("lote-salvar-texto");
+            if (spinner) spinner.style.display = "inline-block";
+            if (textoEl) textoEl.textContent = "Salvando...";
+            btnLoteSalvar.disabled = true;
+
+            const tags = `[Lote] [Pgmto: ${formaPagamento.toUpperCase()}] [Vendedor: ${vendedorNome}]`;
+            const obs = obsAdicional ? `${tags} ${obsAdicional}` : tags;
+
             let salvos = 0;
             let erros = 0;
 
-            // Salvar cada número no banco
-            for (const num of numerosSelecionadosList) {
-                if (rifasData[num]) continue; // já reservado, pular
-                const { error } = await supabaseClient
-                    .from("rifas")
-                    .insert({
-                        numero: num,
-                        nome: nome,
-                        observacao: "[Lote]",
-                        user_id: currentUser.id
-                    });
-                if (error) { erros++; } else { salvos++; }
+            try {
+                // Salvar cada número no banco
+                for (const num of numerosSelecionadosList) {
+                    if (rifasData[num]) continue; // já reservado, pular
+                    const { error } = await supabaseClient
+                        .from("rifas")
+                        .insert({
+                            numero: num,
+                            nome: nome,
+                            observacao: obs,
+                            user_id: currentUser ? currentUser.id : null
+                        });
+                    if (error) { erros++; } else { salvos++; }
+                }
+
+                if (erros > 0) {
+                    exibirNotificacao(`${salvos} número(s) reservado(s), ${erros} já ocupado(s).`, "warning");
+                } else {
+                    exibirNotificacao(`${salvos} número(s) reservado(s) com sucesso! Abrindo WhatsApp...`, "success");
+                }
+
+                // Montar e abrir WhatsApp com o vendedor correto
+                const nums = numerosSelecionadosList.map(n => formatarNumero(n)).join(", ");
+                const qtd = numerosSelecionadosList.length;
+                const valorTotal = (qtd * VALOR_NUMERO).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+                const vendedorObj = VENDEDORES.find(v => v.nome === vendedorNome) || VENDEDORES[0];
+                const waNumber = vendedorObj.whatsapp;
+
+                const msg = `Olá ${vendedorObj.nome}! Quero confirmar minha reserva em lote na Rifa Terceirão 🎟️\n\n*Nome:* ${nome}\n*Números:* ${nums}\n*Quantidade:* ${qtd}\n*Pagamento:* ${formaPagamento.toUpperCase()}\n*Valor Total:* ${valorTotal}${obsAdicional ? `\nObs: ${obsAdicional}` : ""}\n\n👉 *Estou enviando o comprovante do PIX em anexo!* 📎`;
+                const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
+
+                fecharModalLote();
+                carregarDadosBanco();
+                if (window.carregarDadosAdmin) window.carregarDadosAdmin();
+                if (window.carregarMeusNumeros) window.carregarMeusNumeros();
+                limparModoSelecao();
+
+                setTimeout(() => window.open(url, "_blank"), 600);
+
+            } catch (error) {
+                exibirNotificacao("Erro ao salvar reservas: " + error.message, "error");
+            } finally {
+                if (spinner) spinner.style.display = "none";
+                if (textoEl) textoEl.textContent = "Confirmar e Enviar no WhatsApp";
+                btnLoteSalvar.disabled = false;
             }
-
-            btnFinalizar.disabled = false;
-            if (spanFinalizar) spanFinalizar.textContent = "Finalizar Reserva";
-
-            if (erros > 0) {
-                exibirNotificacao(`${salvos} reservado(s), ${erros} já ocupado(s).`, "warning");
-            } else {
-                exibirNotificacao(`${salvos} número(s) reservado(s) com sucesso!`, "success");
-            }
-
-            // Montar e abrir WhatsApp com valor total
-            const nums = numerosSelecionadosList.map(n => formatarNumero(n)).join(", ");
-            const msg = `Olá! Quero confirmar minha reserva na Rifa Terceirão 🎟️\n\n*Nome:* ${nome}\n*Números:* ${nums}\n*Quantidade:* ${qtd}\n*Valor Total:* ${valorTotal}\n\nAguardando confirmação!`;
-            const url = `https://wa.me/5527998803770?text=${encodeURIComponent(msg)}`;
-
-            // Recarregar dados e limpar seleção
-            carregarDadosBanco();
-            if (window.carregarDadosAdmin) window.carregarDadosAdmin();
-            limparModoSelecao();
-
-            setTimeout(() => window.open(url, "_blank"), 500);
         };
     }
 });

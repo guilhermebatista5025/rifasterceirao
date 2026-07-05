@@ -3,6 +3,11 @@
  *****************************************************************/
 
 async function carregarMeusNumeros() {
+    // Evitar checagem de permissões e alertas antes da resolução inicial da sessão auth
+    if (!window.initialAuthResolved) {
+        return;
+    }
+
     // Se o banco não estiver configurado, redireciona para a home
     if (!supabaseClient) {
         exibirNotificacao("Banco de dados Supabase não conectado. Redirecionando...", "warning");

@@ -12,6 +12,10 @@ var supabaseClient = null;
 var currentUser = null;
 var userRole = 'user'; // 'user' ou 'admin'
 var userDisplayName = '';
+var initialAuthResolved = false;
+window.initialAuthResolved = false;
+var authEventsCount = 0;
+window.authEventsCount = 0;
 let numeroSelecionado = null;
 let currentTab = 'tab-rifas';
 let activeFiltro = 'todos';
@@ -377,6 +381,28 @@ function setupAuthModal() {
 
 async function handleAuthStateChange(session) {
     currentUser = session?.user || null;
+
+    // Prevenir condição de corrida na restauração da sessão do Supabase
+    if (!currentUser && !window.initialAuthResolved) {
+        const temToken = () => {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && (k.includes("auth-token") || k.startsWith("sb-"))) {
+                    const val = localStorage.getItem(k);
+                    if (val && val !== "null" && val.trim() !== "") return true;
+                }
+            }
+            return false;
+        };
+        
+        if (temToken() && window.authEventsCount === 0) {
+            window.authEventsCount++;
+            console.log("⏳ Aguardando restauração da sessão do Supabase...");
+            return;
+        }
+    }
+    
+    window.authEventsCount++;
     const triggerBtn = document.getElementById("btn-login-trigger");
     const isInPagesFolder = window.location.pathname.includes('/pages/');
 
@@ -448,6 +474,8 @@ async function handleAuthStateChange(session) {
             window.location.href = "../index.html";
         }
     }
+
+    window.initialAuthResolved = true;
 
     if (window.carregarDadosBanco) window.carregarDadosBanco();
     if (window.carregarMeusNumeros) window.carregarMeusNumeros();

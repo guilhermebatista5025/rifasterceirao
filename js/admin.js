@@ -3,6 +3,11 @@
  *****************************************************************/
 
 async function carregarDadosAdmin() {
+    // Evitar checagem de permissões e alertas antes da resolução inicial da sessão auth
+    if (!window.initialAuthResolved) {
+        return;
+    }
+
     // Se o banco não estiver configurado, redireciona para a home
     if (!supabaseClient) {
         exibirNotificacao("Banco de dados Supabase não conectado. Redirecionando...", "warning");
@@ -20,8 +25,8 @@ async function carregarDadosAdmin() {
     const tbodyVendas = document.getElementById("lista-admin-vendas");
     const tbodyUsers = document.getElementById("lista-admin-usuarios");
 
-    tbodyVendas.innerHTML = `<tr><td colspan="5" class="empty-state">Carregando vendas...</td></tr>`;
-    tbodyUsers.innerHTML = `<tr><td colspan="3" class="empty-state">Carregando usuários...</td></tr>`;
+    if (tbodyVendas) tbodyVendas.innerHTML = `<tr><td colspan="5" class="empty-state">Carregando vendas...</td></tr>`;
+    if (tbodyUsers) tbodyUsers.innerHTML = `<tr><td colspan="3" class="empty-state">Carregando usuários...</td></tr>`;
 
     try {
         // 1. Carregar Todas as Vendas com Perfil (Excluindo a linha de config com numero=0)
@@ -33,24 +38,26 @@ async function carregarDadosAdmin() {
 
         if (errVendas) throw errVendas;
 
-        tbodyVendas.innerHTML = "";
+        if (tbodyVendas) {
+            tbodyVendas.innerHTML = "";
 
-        if (!vendas || vendas.length === 0) {
-            tbodyVendas.innerHTML = `<tr><td colspan="5" class="empty-state">Nenhuma venda registrada.</td></tr>`;
-        } else {
-            vendas.forEach(venda => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td><span class="badge-numero">${formatarNumero(venda.numero)}</span></td>
-                    <td><strong>${venda.profiles?.full_name || venda.nome}</strong></td>
-                    <td>${formatarData(venda.created_at)}</td>
-                    <td>${venda.observacao || "-"}</td>
-                    <td>
-                        <button class="btn-primary btn-action-small" onclick="abrirDetalhesNumero(${venda.numero})">Editar</button>
-                    </td>
-                `;
-                tbodyVendas.appendChild(tr);
-            });
+            if (!vendas || vendas.length === 0) {
+                tbodyVendas.innerHTML = `<tr><td colspan="5" class="empty-state">Nenhuma venda registrada.</td></tr>`;
+            } else {
+                vendas.forEach(venda => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><span class="badge-numero">${formatarNumero(venda.numero)}</span></td>
+                        <td><strong>${venda.profiles?.full_name || venda.nome}</strong></td>
+                        <td>${formatarData(venda.created_at)}</td>
+                        <td>${venda.observacao || "-"}</td>
+                        <td>
+                            <button class="btn-primary btn-action-small" onclick="abrirDetalhesNumero(${venda.numero})">Editar</button>
+                        </td>
+                    `;
+                    tbodyVendas.appendChild(tr);
+                });
+            }
         }
 
         // 2. Carregar Lista de Usuários
@@ -61,32 +68,34 @@ async function carregarDadosAdmin() {
 
         if (errUsers) throw errUsers;
 
-        tbodyUsers.innerHTML = "";
+        if (tbodyUsers) {
+            tbodyUsers.innerHTML = "";
 
-        const admins = allUsers ? allUsers.filter(u => u.role === 'admin') : [];
+            const admins = allUsers ? allUsers.filter(u => u.role === 'admin') : [];
 
-        if (admins.length === 0) {
-            tbodyUsers.innerHTML = `<tr><td colspan="4" class="empty-state">Nenhum administrador cadastrado.</td></tr>`;
-        } else {
-            admins.forEach(u => {
-                const tr = document.createElement("tr");
-                const badgeRole = u.role === 'admin' ? 'badge-admin' : 'badge-user';
-                tr.innerHTML = `
-                    <td><strong>${u.full_name}</strong></td>
-                    <td class="text-muted" style="font-size:12px;">ID: ${u.id.substring(0, 8)}...</td>
-                    <td>
-                        <span class="badge ${badgeRole}">
-                            ${u.role}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn-danger" onclick="toggleUserRole('${u.id}', '${u.role}')" style="padding: 6px 12px; font-size: 12px; height: auto; border-radius: var(--radius-sm);">
-                            <i class="fa-solid fa-user-minus"></i> Remover Admin
-                        </button>
-                    </td>
-                `;
-                tbodyUsers.appendChild(tr);
-            });
+            if (admins.length === 0) {
+                tbodyUsers.innerHTML = `<tr><td colspan="4" class="empty-state">Nenhum administrador cadastrado.</td></tr>`;
+            } else {
+                admins.forEach(u => {
+                    const tr = document.createElement("tr");
+                    const badgeRole = u.role === 'admin' ? 'badge-admin' : 'badge-user';
+                    tr.innerHTML = `
+                        <td><strong>${u.full_name}</strong></td>
+                        <td class="text-muted" style="font-size:12px;">ID: ${u.id.substring(0, 8)}...</td>
+                        <td>
+                            <span class="badge ${badgeRole}">
+                                ${u.role}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-danger" onclick="toggleUserRole('${u.id}', '${u.role}')" style="padding: 6px 12px; font-size: 12px; height: auto; border-radius: var(--radius-sm);">
+                                <i class="fa-solid fa-user-minus"></i> Remover Admin
+                            </button>
+                        </td>
+                    `;
+                    tbodyUsers.appendChild(tr);
+                });
+            }
         }
 
         // Salvar em cache para busca local no formulário de promoção

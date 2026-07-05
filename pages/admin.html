@@ -54,10 +54,6 @@
         
         <section id="tab-admin" class="tab-content active">
             <div class="section-header admin-header-flex">
-                <div>
-                    <h2><i class="fa-solid fa-user-shield"></i> Painel Administrativo</h2>
-                    <p>Gerencie todas as vendas, libere números e visualize a lista de usuários do sistema.</p>
-                </div>
                 <div class="admin-actions-bar">
                     <button id="btn-lote-abrir" class="btn-primary btn-action-small"><i class="fa-solid fa-bolt"></i> Lançar em Lote</button>
                     <button id="btn-exportar-csv" class="btn-secondary btn-action-small"><i class="fa-solid fa-file-csv"></i> Exportar CSV</button>
@@ -97,81 +93,40 @@
                 </div>
             </div>
 
-            <div class="admin-grid">
-                <!-- Coluna Esquerda: Configuração e Controle de Vendas -->
-                <div>
-                    <!-- Configurar Total de Rifas -->
-                    <div class="card" style="margin-bottom: 24px;">
-                        <h3><i class="fa-solid fa-ticket"></i> Configurar Quantidade de Rifas</h3>
-                        <div style="margin-top: 30px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; width: 100%;">
-                            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-                                <label for="admin-total-rifas-input" style="font-weight: 600; font-size: 13px; margin-bottom: 8px; display: block;">Quantidade Total de Rifas Disponíveis</label>
-                                <input type="number" id="admin-total-rifas-input" class="admin-input" placeholder="Ex: 2000" min="1">
-                            </div>
-                            <button id="btn-salvar-total-rifas" class="btn-primary" style="height: 44px; padding: 0 24px;">Salvar Limite</button>
+            <div class="admin-grid" style="grid-template-columns: 1fr;">
+                <!-- Configurar Total de Rifas -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <h3><i class="fa-solid fa-ticket"></i> Configurar Quantidade de Rifas</h3>
+                    <div style="margin-top: 30px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; width: 100%;">
+                        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                            <label for="admin-total-rifas-input" style="font-weight: 600; font-size: 13px; margin-bottom: 8px; display: block;">Quantidade Total de Rifas Disponíveis</label>
+                            <input type="number" id="admin-total-rifas-input" class="admin-input" placeholder="Ex: 2000" min="1">
                         </div>
-                    </div>
-
-                    <!-- Tabela de Reservas -->
-                    <div class="card table-card admin-vendas-card" style="margin-bottom: 24px;">
-                        <h3><i class="fa-solid fa-cart-shopping"></i> Controle de Vendas Gerais</h3>
-
-                        <div class="table-responsive">
-                            <table class="data-table" id="tabela-admin-vendas">
-                                <thead>
-                                    <tr>
-                                        <th>Número</th>
-                                        <th>Comprador</th>
-                                        <th>Data</th>
-                                        <th>Observação</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-admin-vendas">
-                                    <tr>
-                                        <td colspan="5" class="empty-state">Nenhuma venda registrada no sistema.</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Tabela de Usuários (Administradores) -->
-                    <div class="card table-card admin-usuarios-card">
-                        <h3><i class="fa-solid fa-users"></i> Administradores do Sistema</h3>
-                        <div class="table-responsive">
-                            <table class="data-table" id="tabela-admin-usuarios">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>ID Usuário</th>
-                                        <th>Papel</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-admin-usuarios">
-                                    <tr>
-                                        <td colspan="4" class="empty-state">Nenhum administrador cadastrado.</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <button id="btn-salvar-total-rifas" class="btn-primary" style="height: 44px; padding: 0 24px;">Salvar Limite</button>
                     </div>
                 </div>
 
-                <!-- Lado Direito: Tabela de Usuários -->
-                <div>
-                    <!-- Adicionar Administrador -->
-                    <div class="card" style="margin-bottom: 24px;">
-                        <h3><i class="fa-solid fa-user-plus"></i> Adicionar Administrador</h3>
-                        <div style="margin-top: 30px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; width: 100%;">
-                            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-                                <label for="admin-add-id" style="font-weight: 600; font-size: 13px; margin-bottom: 8px; display: block;">Usuário (Nome ou E-mail)</label>
-                                <input type="text" id="admin-add-id" class="admin-input" list="usuarios-sugeridos" placeholder="Digite o nome ou e-mail do usuário...">
-                                <datalist id="usuarios-sugeridos"></datalist>
-                            </div>
-                            <button id="btn-add-admin" class="btn-primary" style="height: 44px; padding: 0 24px; white-space: nowrap;">Promover a Administrador</button>
-                        </div>
+                <!-- Tabela de Reservas -->
+                <div class="card table-card admin-vendas-card" style="margin-bottom: 24px;">
+                    <h3><i class="fa-solid fa-cart-shopping"></i> Controle de Vendas Gerais</h3>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="tabela-admin-vendas">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Comprador</th>
+                                    <th>Data</th>
+                                    <th>Observação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-admin-vendas">
+                                <tr>
+                                    <td colspan="5" class="empty-state">Nenhuma venda registrada no sistema.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

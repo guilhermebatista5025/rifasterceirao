@@ -260,16 +260,46 @@
     .admin-header-flex {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 20px;
     }
     
     .admin-actions-bar {
         width: 100%;
+        display: flex;
+        gap: 10px;
     }
     
     .admin-actions-bar button {
         flex: 1;
         justify-content: center;
+    }
+}
+
+@media(max-width: 768px) {
+    .section-header h2 {
+        font-size: 1.25rem; /* 20px */
+    }
+    
+    .section-header p {
+        font-size: 0.875rem; /* 14px */
+        line-height: 1.4;
+    }
+}
+
+@media(max-width: 576px) {
+    .admin-actions-bar {
+        flex-wrap: wrap;
+    }
+    
+    .admin-actions-bar button {
+        flex: 1 1 calc(50% - 5px);
+        font-size: 13px;
+        padding: 10px 14px;
+        height: 40px;
+    }
+    
+    .admin-actions-bar button#btn-zerar-vendas {
+        flex: 1 1 100%;
     }
 }
 
